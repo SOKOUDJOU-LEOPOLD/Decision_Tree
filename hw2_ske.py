@@ -98,7 +98,13 @@ class DataLoader:
             X_data: np.ndarray of shape (n_samples, n_features) - Extracted features
             y_data: np.ndarray of shape (n_samples,) - Extracted labels
         '''
-        pass
+        # Features: everything except label column "y"
+        X_data = data.drop(columns=["y"]).to_numpy()
+
+        # Label: column "y"
+        y_data = data["y"].to_numpy()
+
+        return X_data, y_data
 
 
 '''
@@ -202,5 +208,9 @@ my_best_model = XGBClassifier()
 
 if __name__ == "__main__":
     dataLoader = DataLoader(data_root="./", random_state=0)
+    # print training data
     dataLoader.data_split()
     print(dataLoader.data_train)
+    # print preprocessed data i.e. numeric values of columns
+    dataLoader.data_prep()
+    print(dataLoader.data)
