@@ -75,7 +75,19 @@ class DataLoader:
         '''
         You are asked to drop any rows with missing values and map categorical variables to numeric values. 
         '''
-        pass
+        if self.data is None or len(self.data) == 0:
+            self.data = pd.DataFrame()
+            return
+
+        # 1) Drop rows with missing values
+        self.data = self.data.dropna().reset_index(drop=True)
+
+        # 2) Map categorical (object) columns to numeric
+        cat_cols = self.data.select_dtypes(include=["object"]).columns
+        for col in cat_cols:
+            # make mapping deterministic: categories sorted lexicographically
+            cats = sorted(self.data[col].astype(str).unique().tolist())
+            self.data[col] = pd.Categorical(self.data[col].astype(str), categories=cats).codes
 
     def extract_features_and_label(self, data: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
         '''
