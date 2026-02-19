@@ -82,8 +82,15 @@ class DataLoader:
         # 1) Drop rows with missing values
         self.data = self.data.dropna().reset_index(drop=True)
 
+        # Explicit label mapping
+        if "y" in self.data.columns:
+            self.data["y"] = self.data["y"].astype(str).map({"no": 0, "yes": 1})
+
+
         # 2) Map categorical (object) columns to numeric
         cat_cols = self.data.select_dtypes(include=["object"]).columns
+        cat_cols = [c for c in cat_cols if c != "y"]
+        
         for col in cat_cols:
             # make mapping deterministic: categories sorted lexicographically
             cats = sorted(self.data[col].astype(str).unique().tolist())
