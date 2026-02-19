@@ -258,7 +258,43 @@ class ClassificationTree:
         - tuple(int, float): Best feature index and split value
         - None: If no split is found
         '''
-        pass
+        n_samples, n_features = X.shape
+        if n_samples <= 1:
+            return None
+
+        parent_impurity = self.split_crit(y)
+        best_impurity = parent_impurity
+        best_split = None
+
+        for j in range(n_features):
+            xj = X[:, j]
+            uniq = np.unique(xj)
+            if uniq.shape[0] <= 1:
+                continue
+
+            # candidate thresholds: midpoints between sorted unique values
+            uniq_sorted = np.sort(uniq)
+            thresholds = (uniq_sorted[:-1] + uniq_sorted[1:]) / 2.0
+
+            for thr in thresholds:
+                left_mask = xj <= thr
+                right_mask = ~left_mask
+
+                n_left = np.sum(left_mask)
+                n_right = np.sum(right_mask)
+                if n_left == 0 or n_right == 0:
+                    continue
+
+                y_left = y[left_mask]
+                y_right = y[right_mask]
+
+                impurity = (n_left / n_samples) * self.split_crit(y_left) + (n_right / n_samples) * self.split_crit(y_right)
+
+                if impurity < best_impurity:
+                    best_impurity = impurity
+                    best_split = (j, float(thr))
+
+        return best_split
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         '''
