@@ -46,6 +46,11 @@ class DataLoader:
         self.data_train = None
         self.data_valid = None
 
+        # Call class methods
+        self.data_prep()
+        self.data_split()
+        
+
     def data_split(self) -> None:
         '''
         You are asked to split the training data into train/valid datasets on the ratio of 80/20. 
