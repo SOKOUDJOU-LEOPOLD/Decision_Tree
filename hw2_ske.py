@@ -174,4 +174,6 @@ my_best_model = XGBClassifier()
 
 
 if __name__ == "__main__":
-    print("Hello World!")
+    dataLoader = DataLoader(data_root="./", random_state=0)
+    dataLoader.data_split()
+    print(dataLoader.data_train)
