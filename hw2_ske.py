@@ -199,8 +199,12 @@ class ClassificationTree:
         _, counts = np.unique(y, return_counts=True)
         p = counts / n
         return 1.0 - np.sum(p ** 2)        
-    
-    
+
+    def _majority_class(self, y: np.ndarray):
+        vals, counts = np.unique(y, return_counts=True)
+        return vals[np.argmax(counts)]
+  
+
     def build_tree(self, X: np.ndarray, y: np.ndarray, depth: int) -> None:
         '''
         Implement the tree building algorithm here. You can recursivly call this function to build the 
