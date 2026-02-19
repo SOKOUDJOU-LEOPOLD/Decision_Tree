@@ -296,6 +296,20 @@ class ClassificationTree:
 
         return best_split
 
+    def _predict_one(self, x: np.ndarray):
+        node = self.tree_root
+        while node is not None and not node.is_leaf():
+            feat_idx, thr = node.split
+            if x[feat_idx] <= thr:
+                node = node.left
+            else:
+                node = node.right
+
+        # Fallback if something odd happens
+        if node is None or node.prediction is None:
+            return 0
+        return node.prediction
+
     def predict(self, X: np.ndarray) -> np.ndarray:
         '''
         Predict classes for multiple samples.
@@ -306,7 +320,8 @@ class ClassificationTree:
         Returns:
             np.ndarray: Array of predictions
         '''
-        pass
+        preds = np.array([self._predict_one(X[i]) for i in range(X.shape[0])])
+        return preds
 
 
 def train_XGBoost() -> dict:
