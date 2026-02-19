@@ -101,7 +101,7 @@ class ClassificationTree:
     def __init__(self, random_state: int, max_depth: int = 5):
         self.random_state = random_state
         np.random.seed(self.random_state)
-        self.max_depth = None
+        self.max_depth = max_depth
 
         self.tree_root = None
 
