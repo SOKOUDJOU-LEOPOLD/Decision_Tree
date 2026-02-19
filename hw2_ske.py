@@ -51,7 +51,10 @@ class DataLoader:
         You are asked to split the training data into train/valid datasets on the ratio of 80/20. 
         Add the split datasets to self.data_train, self.data_valid. Both of the split should still be pd.DataFrame.
         '''
-        pass
+        n = len(self.data)
+        n_train = int(0.8 * n)
+        self.data_train = self.data[:n_train]
+        self.data_valid = self.data[n_train:]
 
     def data_prep(self) -> None:
         '''
