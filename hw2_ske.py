@@ -322,6 +322,19 @@ class ClassificationTree:
         preds = np.array([self._predict_one(X[i]) for i in range(X.shape[0])])
         return preds
 
+# F1 Score
+def f1_score_binary(y_true: np.ndarray, y_pred: np.ndarray, pos_label: int = 1) -> float:
+    y_true = y_true.astype(int)
+    y_pred = y_pred.astype(int)
+
+    tp = np.sum((y_true == pos_label) & (y_pred == pos_label))
+    fp = np.sum((y_true != pos_label) & (y_pred == pos_label))
+    fn = np.sum((y_true == pos_label) & (y_pred != pos_label))
+
+    denom = (2 * tp + fp + fn)
+    if denom == 0:
+        return 0.0
+    return (2 * tp) / denom
 
 def train_XGBoost() -> dict:
     '''
@@ -351,3 +364,6 @@ if __name__ == "__main__":
 
     valid_acc = np.mean(y_pred_valid == y_valid)
     print("Validation accuracy:", valid_acc)   
+
+    #Valid data F1-score
+    print("Valid F1:", f1_score_binary(y_valid, y_pred_valid, pos_label=1))
