@@ -39,7 +39,9 @@ class DataLoader:
         self.random_state = random_state
         np.random.seed(self.random_state)
 
-        self.data = pd.DataFrame()
+        # Load dataset
+        data_path = data_root.rstrip("/") + "/hw2-bank_data.csv"
+        self.data = pd.read_csv(data_path, sep=';')
 
         self.data_train = None
         self.data_valid = None
