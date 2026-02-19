@@ -51,10 +51,25 @@ class DataLoader:
         You are asked to split the training data into train/valid datasets on the ratio of 80/20. 
         Add the split datasets to self.data_train, self.data_valid. Both of the split should still be pd.DataFrame.
         '''
+        if self.data is None or len(self.data) == 0:
+            # Keep consistent types even if empty
+            self.data_train = pd.DataFrame()
+            self.data_valid = pd.DataFrame()
+            return
+
         n = len(self.data)
         n_train = int(0.8 * n)
-        self.data_train = self.data[:n_train]
-        self.data_valid = self.data[n_train:]
+
+        # Shuffle indices
+        indices = np.arange(n)
+        np.random.shuffle(indices)
+
+        train_idx = indices[:n_train]
+        valid_idx = indices[n_train:]
+
+        # Use iloc because indices are positional
+        self.data_train = self.data.iloc[train_idx].reset_index(drop=True)
+        self.data_valid = self.data.iloc[valid_idx].reset_index(drop=True)
 
     def data_prep(self) -> None:
         '''
