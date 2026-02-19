@@ -367,3 +367,13 @@ if __name__ == "__main__":
 
     #Valid data F1-score
     print("Valid F1:", f1_score_binary(y_valid, y_pred_valid, pos_label=1))
+
+    # Tuning max-depth to find the best F1 score
+    best_f1, best_depth = -1, None
+    for d in [1,2,3,4,5,6,8,10]:
+        tree = ClassificationTree(random_state=42, max_depth=d)
+        tree.fit(X_train, y_train)
+        f1 = f1_score_binary(y_valid, tree.predict(X_valid))
+        if f1 > best_f1:
+            best_f1, best_depth = f1, d
+    print("best_depth: ", best_depth," best_f1: ", best_f1)
