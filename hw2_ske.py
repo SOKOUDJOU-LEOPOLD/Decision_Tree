@@ -30,7 +30,7 @@ class DataLoader:
     will be tested on the pre-built enviornment with only numpy and pandas available.
     '''
 
-    def __init__(self, data_root: str, random_state: int):
+    def __init__(self, data_root: str, random_state: int = 42):
         '''
         Inialize the DataLoader class with the data_root path.
         Load data as pd.DataFrame, store as needed and initialize other variables.
@@ -38,6 +38,8 @@ class DataLoader:
         '''
         self.random_state = random_state
         np.random.seed(self.random_state)
+
+        print("random state: ", random_state)
 
         # Load dataset
         data_path = data_root.rstrip("/") + "/hw2-bank_data.csv"
@@ -47,8 +49,11 @@ class DataLoader:
         self.data_valid = None
 
         # Call class methods
+        print("=========================== INIT START =================================")
         self.data_prep()
         self.data_split()
+        self.extract_features_and_label()
+        print("=========================== INIT STOP =================================")
         
 
     def data_split(self) -> None:
@@ -87,19 +92,25 @@ class DataLoader:
         # 1) Drop rows with missing values
         self.data = self.data.dropna().reset_index(drop=True)
 
-        # Explicit label mapping
-        if "y" in self.data.columns:
-            self.data["y"] = self.data["y"].astype(str).map({"no": 0, "yes": 1})
+        # Normalize all object columns first (strip spaces and quotes)
+        obj_cols = self.data.select_dtypes(include=["object"]).columns
+        for col in obj_cols:
+            self.data[col] = self.data[col].astype(str).str.strip().str.strip('"').str.strip("'")
 
+        # Explicit yes/no mapping for known binary columns (including label)
+        yn_map = {"no": 0, "yes": 1}
+        for col in ["default", "housing", "loan", "y"]:
+            if col in self.data.columns:
+                # If already numeric, leave it alone (prevents turning 0/1 into NaN)
+                if pd.api.types.is_numeric_dtype(self.data[col]):
+                    continue
+                # Otherwise map normalized strings
+                self.data[col] = self.data[col].map(yn_map)
 
-        # 2) Map categorical (object) columns to numeric
-        cat_cols = self.data.select_dtypes(include=["object"]).columns
-        cat_cols = [c for c in cat_cols if c != "y"]
-
-        for col in cat_cols:
-            # make mapping deterministic: categories sorted lexicographically
-            cats = sorted(self.data[col].astype(str).unique().tolist())
-            self.data[col] = pd.Categorical(self.data[col].astype(str), categories=cats).codes
+        # For remaining object columns, use pandas categorical codes
+        obj_cols = self.data.select_dtypes(include=["object", "string"]).columns
+        for col in obj_cols:
+            self.data[col] = pd.Categorical(self.data[col]).codes
 
     def extract_features_and_label(self, data: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
         '''
@@ -115,6 +126,10 @@ class DataLoader:
 
         # Label: column "y"
         y_data = data["y"].to_numpy()
+
+        print("Features and Labels")
+        print("X_data: ", X_data)
+        print("y_data: ", y_data)
 
         return X_data, y_data
 
@@ -237,14 +252,5 @@ my_best_model = XGBClassifier()
 
 
 if __name__ == "__main__":
-    dataLoader = DataLoader(data_root="./", random_state=0)
-    # print training data
-    dataLoader.data_split()
-    print(dataLoader.data_train)
-    # create histogram
-    dataLoader.plot_histograms(dataLoader.data_train)
-    plt.show()
-
-    # print preprocessed data i.e. numeric values of columns
-    dataLoader.data_prep()
-    print(dataLoader.data)
+    dataLoader = DataLoader(data_root="./", random_state=42)
+    
