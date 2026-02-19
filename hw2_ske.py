@@ -192,8 +192,15 @@ class ClassificationTree:
         '''
         Implement the impurity measure of your choice here. Return the impurity value.
         '''
-        pass
-        
+        # Gini impurity
+        n = y.shape[0]
+        if n == 0:
+            return 0.0
+        _, counts = np.unique(y, return_counts=True)
+        p = counts / n
+        return 1.0 - np.sum(p ** 2)        
+    
+    
     def build_tree(self, X: np.ndarray, y: np.ndarray, depth: int) -> None:
         '''
         Implement the tree building algorithm here. You can recursivly call this function to build the 
