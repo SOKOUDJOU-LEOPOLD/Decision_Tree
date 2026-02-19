@@ -90,7 +90,7 @@ class DataLoader:
         # 2) Map categorical (object) columns to numeric
         cat_cols = self.data.select_dtypes(include=["object"]).columns
         cat_cols = [c for c in cat_cols if c != "y"]
-        
+
         for col in cat_cols:
             # make mapping deterministic: categories sorted lexicographically
             cats = sorted(self.data[col].astype(str).unique().tolist())
@@ -113,6 +113,24 @@ class DataLoader:
 
         return X_data, y_data
 
+    def plot_histograms(self, data: pd.DataFrame) -> None:
+        '''
+        Plot histograms for all columns in self.data.
+        
+        '''
+        if data is None or len(data) == 0:
+            return
+
+        cols = list(data.columns)
+        n_cols = 4
+        n_rows = int(np.ceil(len(cols) / n_cols))
+
+        plt.figure(figsize=(4 * n_cols, 3 * n_rows))
+        for i, col in enumerate(cols, start=1):
+            plt.subplot(n_rows, n_cols, i)
+            plt.hist(data[col].to_numpy(), bins=20, edgecolor="black")
+            plt.title(str(col))
+            plt.tight_layout()
 
 '''
 Porblem A-2: Classification Tree Inplementation
@@ -218,6 +236,10 @@ if __name__ == "__main__":
     # print training data
     dataLoader.data_split()
     print(dataLoader.data_train)
+    # create histogram
+    dataLoader.plot_histograms(dataLoader.data_train)
+    plt.show()
+
     # print preprocessed data i.e. numeric values of columns
     dataLoader.data_prep()
     print(dataLoader.data)
