@@ -212,7 +212,33 @@ class ClassificationTree:
 
         Think about the difference between depth here and the max_depth parameter in the constructor.
         '''
-        pass
+        # stopping conditions
+        if X.shape[0] == 0:
+            return self.Node(prediction=None)  # should not usually happen
+
+        if depth >= self.max_depth:
+            return self.Node(prediction=self._majority_class(y))
+
+        if np.unique(y).shape[0] == 1:
+            return self.Node(prediction=y[0])
+
+        split = self.search_best_split(X, y)
+        if split is None:
+            return self.Node(prediction=self._majority_class(y))
+
+        feat_idx, thr = split
+        xj = X[:, feat_idx]
+        left_mask = xj <= thr
+        right_mask = ~left_mask
+
+        # if split degenerates, make leaf
+        if np.sum(left_mask) == 0 or np.sum(right_mask) == 0:
+            return self.Node(prediction=self._majority_class(y))
+
+        left_node = self.build_tree(X[left_mask], y[left_mask], depth + 1)
+        right_node = self.build_tree(X[right_mask], y[right_mask], depth + 1)
+        return self.Node(split=(feat_idx, thr), left=left_node, right=right_node, prediction=None)
+
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         '''
@@ -222,7 +248,7 @@ class ClassificationTree:
             X: numpy array of shape (n_samples, n_features) - Training features
             y: numpy array of shape (n_samples,) - Training labels
         '''
-        pass
+        self.tree_root = self.build_tree(X, y, depth=0)
 
     def search_best_split(self, X: np.ndarray, y: np.ndarray):
         '''
