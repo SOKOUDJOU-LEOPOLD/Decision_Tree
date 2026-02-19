@@ -52,7 +52,6 @@ class DataLoader:
         print("=========================== INIT START =================================")
         self.data_prep()
         self.data_split()
-        self.extract_features_and_label()
         print("=========================== INIT STOP =================================")
         
 
@@ -340,5 +339,15 @@ my_best_model = XGBClassifier()
 
 
 if __name__ == "__main__":
+    # Training the model
     dataLoader = DataLoader(data_root="./", random_state=42)
-    
+    X_train, y_train = dataLoader.extract_features_and_label(dataLoader.data_train)
+    X_valid, y_valid = dataLoader.extract_features_and_label(dataLoader.data_valid)
+
+    tree = ClassificationTree(random_state=42, max_depth=5)
+    tree.fit(X_train, y_train)
+
+    y_pred_valid = tree.predict(X_valid)
+
+    valid_acc = np.mean(y_pred_valid == y_valid)
+    print("Validation accuracy:", valid_acc)   
