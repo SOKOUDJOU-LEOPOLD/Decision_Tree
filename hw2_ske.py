@@ -127,8 +127,8 @@ class DataLoader:
         y_data = data["y"].to_numpy()
 
         print("Features and Labels")
-        print("X_data: ", X_data)
-        print("y_data: ", y_data)
+        # print("X_data: ", X_data)
+        # print("y_data: ", y_data)
 
         return X_data, y_data
 
@@ -341,14 +341,147 @@ def train_XGBoost() -> dict:
     See instruction for implementation details. This function will be tested on the pre-built enviornment
     with numpy, pandas, xgboost available.
     '''
-    pass
+    dl = DataLoader(data_root="./", random_state=42)
+    X_train, y_train = dl.extract_features_and_label(dl.data_train)
+    X_valid, y_valid = dl.extract_features_and_label(dl.data_valid)
+
+    alpha_vals = [1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3]
+    n_boot = 100
+
+    # class imbalance weight
+    n_pos = int(np.sum(y_train == 1))
+    n_neg = int(np.sum(y_train == 0))
+    scale_pos_weight = (n_neg / n_pos) if n_pos > 0 else 1.0
+    print("scale_pos_weight: ", scale_pos_weight)
+
+    n_train = X_train.shape[0]
+    best_alpha = None
+    best_f1 = -1.0
+
+    for a in alpha_vals:
+        f1_scores = []
+        for _ in range(n_boot):
+            idx = np.random.randint(0, n_train, size=n_train)  # bootstrap
+            Xb = X_train[idx]
+            yb = y_train[idx]
+
+            model = XGBClassifier(
+                n_estimators=500,
+                max_depth=3,
+                learning_rate=0.1,
+                subsample=0.8,  # 0.8
+                colsample_bytree=0.09,
+                reg_alpha=a,  #10
+                reg_lambda=1,
+                min_child_weight=7, 
+                gamma=0.01,
+                scale_pos_weight=4, #08235294117647, #7.5
+                objective="binary:logistic",
+                eval_metric="logloss",
+                random_state=42,
+            )
+            model.fit(Xb, yb)
+            pred = model.predict(X_valid)
+            f1_scores.append(f1_score_binary(y_valid, pred, pos_label=1))
+
+        avg_f1 = float(np.mean(f1_scores))
+        if avg_f1 > best_f1:
+            best_f1 = avg_f1
+            best_alpha = a
+
+    # Train final model on full training data with best alpha
+    final_model = XGBClassifier(
+        n_estimators=500,
+        max_depth=3,
+        learning_rate=0.1,
+        subsample=0.8,  # 0.8
+        colsample_bytree=0.09,
+        reg_alpha=best_alpha,  #10
+        reg_lambda=1,
+        min_child_weight=7, 
+        gamma=0.01,
+        scale_pos_weight=4, #08235294117647, #7.5
+        objective="binary:logistic",
+        eval_metric="logloss",
+        random_state=42,
+    )
+    final_model.fit(X_train, y_train)
+
+    global my_best_model
+    my_best_model = final_model
+
+    return {
+        "best_alpha": best_alpha,
+        "best_valid_bootstrap_f1": best_f1,
+        "model": final_model
+    }
+
+def plot_roc_auc(model, X: np.ndarray, y: np.ndarray) -> float:
+    """
+    Plots ROC curve and returns AUC.
+    Assumes binary labels y in {0,1}.
+    """
+    # scores = P(y=1)
+    scores = model.predict_proba(X)[:, 1]
+
+    # thresholds from high to low
+    thresholds = np.unique(scores)[::-1]
+
+    P = np.sum(y == 1)
+    N = np.sum(y == 0)
+
+    tpr = []
+    fpr = []
+
+    for thr in thresholds:
+        y_hat = (scores >= thr).astype(int)
+        tp = np.sum((y == 1) & (y_hat == 1))
+        fp = np.sum((y == 0) & (y_hat == 1))
+
+        tpr.append(tp / P if P > 0 else 0.0)
+        fpr.append(fp / N if N > 0 else 0.0)
+
+    # Adding endpoints (0,0) and (1,1) for a good ROC curve
+    fpr = np.array([0.0] + fpr + [1.0])
+    tpr = np.array([0.0] + tpr + [1.0])
+
+    # AUC via trapezoidal rule
+    order = np.argsort(fpr)
+    fpr = fpr[order]
+    tpr = tpr[order]
+    auc = float(np.trapezoid(tpr, fpr))
+
+    plt.figure(figsize=(6, 5))
+    plt.plot(fpr, tpr, label=f"ROC (AUC = {auc:.4f})")
+    plt.plot([0, 1], [0, 1], "k--", label="Random")
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("ROC Curve")
+    plt.legend(loc="lower right")
+    plt.tight_layout()
+
+    return auc
 
 
 '''
 Initialize the following variable with the best model you have found. This model will be used in testing 
 in our pre-built environment.
 '''
-my_best_model = XGBClassifier()
+my_best_model = XGBClassifier(
+        n_estimators=500,
+        max_depth=3,
+        learning_rate=0.1,
+        subsample=0.8,  # 0.8
+        colsample_bytree=0.09,
+        reg_alpha=0.01,  #10
+        reg_lambda=1,
+        min_child_weight=7, 
+        gamma=0.01,
+        scale_pos_weight=4, #08235294117647, #7.5
+        objective="binary:logistic",
+        eval_metric="logloss",
+        random_state=42,
+)
 
 
 if __name__ == "__main__":
@@ -377,3 +510,12 @@ if __name__ == "__main__":
         if f1 > best_f1:
             best_f1, best_depth = f1, d
     print("best_depth: ", best_depth," best_f1: ", best_f1)
+
+    # Tuning XGBClassifier
+    print(train_XGBoost())
+
+    # Plot ROC Curve
+    my_best_model.fit(X_train, y_train)
+    auc = plot_roc_auc(my_best_model, X_valid, y_valid)
+    plt.show()
+    print("AUC:", auc)
